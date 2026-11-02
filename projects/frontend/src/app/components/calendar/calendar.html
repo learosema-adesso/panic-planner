@@ -1,0 +1,18 @@
+<div class="calendar">
+    <div class="cell--header"></div>
+    <div class="cell--header">Mon</div>
+    <div class="cell--header">Tue</div>
+    <div class="cell--header">Wed</div>
+    <div class="cell--header">Thu</div>
+    <div class="cell--header">Fri</div>
+    <div class="cell--header">Sat</div>
+    <div class="cell--header">Sun</div>
+
+    @for (week of weeks; track week.id) {
+        <div class="cell--header">{{ week.calweek }}</div>
+        @for (day of week.days; track day.id) {
+            <div class="cell">{{ day.id }}</div>
+        }
+    }
+
+</div>
