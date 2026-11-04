@@ -8,11 +8,10 @@
     <div class="cell--header">Sat</div>
     <div class="cell--header">Sun</div>
 
-    @for (week of weeks; track week.id) {
-        <div class="cell--header">{{ week.calweek }}</div>
-        @for (day of week.days; track day.id) {
-            <div class="cell">{{ day.id }}</div>
+    @for (week of weeks(); track week.weekNumber) {
+        <div class="cell--header">{{ week.weekNumber }}</div>
+        @for (day of week.days; track day.date) {
+            <div class="cell">{{ day.dayNumber }}</div>
         }
     }
-
 </div>
