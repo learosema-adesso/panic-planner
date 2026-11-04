@@ -11,7 +11,7 @@
     @for (week of weeks(); track week.weekNumber) {
         <div class="cell--header">{{ week.weekNumber }}</div>
         @for (day of week.days; track day.date) {
-            <div class="cell">{{ day.dayNumber }}</div>
+            <div class="cell" [class.cell--outside-month]="day.isOutsideMonth">{{ day.dayNumber }}</div>
         }
     }
 </div>
