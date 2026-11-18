@@ -72,6 +72,26 @@ jobs:
           permission-issues: read
           permission-pull-requests: write
 
+      - name: Diagnose resolve permission (throwaway branch only)
+        if: steps.app.outputs.token != ''
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.app.outputs.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const r = await github.graphql(
+              `query($owner: String!, $repo: String!) {
+                repository(owner: $owner, name: $repo) {
+                  viewerPermission
+                  pullRequest(number: 126) {
+                    reviewThreads(first: 10) { nodes { id isResolved viewerCanResolve viewerCanUnresolve } }
+                  }
+                }
+              }`,
+              { owner, repo },
+            );
+            core.info('DIAG ' + JSON.stringify(r));
+
       - name: Run Mean AI Reviewer
         uses: actions/github-script@v9
         env:
