@@ -1,9 +1,13 @@
-name: Bullybot
+# Copy this file to .github/workflows/bullybot.yml of your repository.
+#
+# BullyBot reviews every pull request, answers replies in his review threads and, on request
+# ("fix it" in a thread), suggests a fix. Setup (secrets, GitHub App) is in the README.
+name: BullyBot
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  # replies in review threads: BullyBot only re-checks its own threads (no full review)
+  # replies in review threads: he only re-checks his own threads (no full review)
   pull_request_review_comment:
     types: [created]
   workflow_dispatch:
@@ -13,96 +17,23 @@ on:
         required: true
         type: number
 
+# What the called workflow needs. "actions: read" lets it find out which version of the scripts
+# it runs. Without it GitHub rejects the run at startup.
 permissions:
   contents: read
-  issues: read # linked issues and their acceptance criteria
+  issues: read
   pull-requests: write
-
-concurrency:
-  # Comments of the GitHub App (BullyBot's own) start runs that do nothing. They get their own
-  # group, so they can never push a waiting run of the same PR out of the queue.
-  group: bullybot-${{ github.event.pull_request.number || inputs.pr_number }}${{ github.event.comment.user.type == 'Bot' && '-bot' || '' }}
-  # a thread reply must not cancel a running full review; it waits in the queue instead
-  cancel-in-progress: ${{ github.event_name != 'pull_request_review_comment' }}
+  actions: read
 
 jobs:
-  bully:
-    # Bot PRs (Dependabot, Renovate, ...) don't get secrets: don't even start the job.
-    # Review comments written by bots are ignored as well.
-    # workflow_dispatch has no pull_request event and always runs.
+  bullybot:
+    # In a public repository everybody can comment: only the people who work on it may make the
+    # bot spend tokens by replying in a thread. Keep this condition.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.user.type != 'Bot' &&
-      !endsWith(github.event.pull_request.user.login, '[bot]') &&
-      (github.event_name != 'pull_request_review_comment' ||
-      github.event.comment.user.type != 'Bot'))
-    runs-on: ubuntu-latest
-    env:
-      # secrets cannot be used in "if:" directly, so the check goes through an env variable
-      APP_CONFIGURED: ${{ secrets.PRODUCT_OWNER_CLIENT_ID != '' && secrets.PRODUCT_OWNER_APP_KEY != '' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: scripts/package-lock.json
-
-      - name: Install Dependencies
-        run: npm ci --ignore-scripts --prefix scripts
-
-      # With the GitHub App, BullyBot's comments come from the app and he can resolve review threads
-      # himself (the workflow token cannot). The app needs "Pull requests: Read and write" and, because GitHub
-      # only lets an app resolve threads with it, "Contents: Read and write" (checked on a throwaway PR).
-      # If the token cannot be created (secrets missing, permission not accepted yet), he carries on
-      # with the workflow token and asks the human to click "Resolve", as before.
-      - name: Create GitHub App token
-        id: app
-        if: env.APP_CONFIGURED == 'true'
-        continue-on-error: true
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ secrets.PRODUCT_OWNER_CLIENT_ID }}
-          private-key: ${{ secrets.PRODUCT_OWNER_APP_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: write
-          permission-issues: read
-          permission-pull-requests: write
-
-      - name: Run Mean AI Reviewer
-        uses: actions/github-script@v9
-        env:
-          # AI provider: gemini (default) or any OpenAI-compatible service, see scripts/README.md
-          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
-          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
-          LLM_MODEL: ${{ vars.LLM_MODEL }}
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          # the Gemini names keep working while the LLM_ ones are not set
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
-          GEMINI_PROJECT_ID: ${{ vars.GEMINI_PROJECT_ID }}
-          GEMINI_LOCATION: ${{ vars.GEMINI_LOCATION }}
-          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
-          # true only when the app token exists: then he resolves threads himself
-          CAN_RESOLVE_THREADS: ${{ steps.app.outputs.token != '' }}
-          # longest suggestion he posts when asked to "fix it" (default 40)
-          BULLYBOT_FIX_MAX_LINES: ${{ vars.BULLYBOT_FIX_MAX_LINES }}
-        with:
-          github-token: ${{ steps.app.outputs.token || github.token }}
-          script: |
-            const path = require('path');
-            const { pathToFileURL } = require('url');
-            const file = path.join(process.env.GITHUB_WORKSPACE, 'scripts/bullybot.mjs');
-            const { bullybot } = await import(pathToFileURL(file).href);
-            await bullybot({
-              github,
-              context,
-              core,
-              prNumber: Number(process.env.PR_NUMBER),
-              canResolveThreads: process.env.CAN_RESOLVE_THREADS === 'true',
-              fixMaxLines: process.env.BULLYBOT_FIX_MAX_LINES,
-            });
+      github.event_name != 'pull_request_review_comment' ||
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) ||
+      github.event.comment.user.type == 'Bot'
+    uses: learosema-adesso/review-and-product-owner-bots/.github/workflows/bullybot.yml@v1
+    with:
+      pr_number: ${{ inputs.pr_number || 0 }}
+    secrets: inherit
