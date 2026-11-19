@@ -3,6 +3,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "lib": ["dom", "ESNext.Date"],
     "types": []
   },
   "include": ["src/**/*.ts"],

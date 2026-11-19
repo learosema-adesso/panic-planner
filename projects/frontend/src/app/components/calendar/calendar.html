@@ -1,0 +1,17 @@
+<div class="calendar">
+    <div class="cell--header"></div>
+    <div class="cell--header">Mon</div>
+    <div class="cell--header">Tue</div>
+    <div class="cell--header">Wed</div>
+    <div class="cell--header">Thu</div>
+    <div class="cell--header">Fri</div>
+    <div class="cell--header">Sat</div>
+    <div class="cell--header">Sun</div>
+
+    @for (week of weeks(); track week.weekNumber) {
+        <div class="cell--header">{{ week.weekNumber }}</div>
+        @for (day of week.days; track day.date) {
+            <div class="cell" [class.cell--outside-month]="day.isOutsideMonth">{{ day.dayNumber }}</div>
+        }
+    }
+</div>
