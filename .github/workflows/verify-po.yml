@@ -5,10 +5,11 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: read
 jobs:
-  cleanup:
-    uses: learosema-adesso/review-and-product-owner-bots/.github/workflows/product-owner-cleanup.yml@feat/reusable-workflows
+  refine:
+    uses: learosema-adesso/review-and-product-owner-bots/.github/workflows/product-owner-refine.yml@feat/reusable-workflows
     with:
+      issue: '19'
       dry_run: true
-      scripts_ref: feat/reusable-workflows
     secrets: inherit
