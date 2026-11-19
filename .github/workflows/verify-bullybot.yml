@@ -1,0 +1,15 @@
+name: Verify BullyBot (throwaway)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review_comment:
+    types: [created]
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write
+  actions: read
+jobs:
+  bullybot:
+    uses: learosema-adesso/review-and-product-owner-bots/.github/workflows/bullybot.yml@feat/reusable-workflows
+    secrets: inherit

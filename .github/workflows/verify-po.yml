@@ -1,0 +1,28 @@
+name: Verify Product Owner (throwaway)
+on:
+  push:
+    branches: [verify/reusable-workflows]
+permissions:
+  contents: read
+  issues: write
+  actions: read
+jobs:
+  plan:
+    uses: learosema-adesso/review-and-product-owner-bots/.github/workflows/product-owner.yml@feat/reusable-workflows
+    with:
+      direction: 'Teams should be able to vote on meeting times'
+      max_tickets: '2'
+      dry_run: true
+    secrets: inherit
+  cleanup:
+    uses: learosema-adesso/review-and-product-owner-bots/.github/workflows/product-owner-cleanup.yml@feat/reusable-workflows
+    with:
+      dry_run: true
+    secrets: inherit
+  refine:
+    uses: learosema-adesso/review-and-product-owner-bots/.github/workflows/product-owner-refine.yml@feat/reusable-workflows
+    with:
+      issue: scan
+      max_issues: '2'
+      dry_run: true
+    secrets: inherit
