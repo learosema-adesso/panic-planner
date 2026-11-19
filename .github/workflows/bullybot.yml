@@ -68,7 +68,7 @@ jobs:
           private-key: ${{ secrets.PRODUCT_OWNER_APP_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
-          permission-contents: read
+          permission-contents: write
           permission-issues: read
           permission-pull-requests: write
 
