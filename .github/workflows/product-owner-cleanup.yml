@@ -1,3 +1,7 @@
+# Copy this file to .github/workflows/product-owner-cleanup.yml of your repository.
+#
+# Run it from the Actions tab to tidy the backlog: implemented, duplicate, superseded or inactive
+# issues are proposed (dry run, the default) or closed and labeled with a comment that says why.
 name: Product Owner cleanup
 
 on:
@@ -21,74 +25,14 @@ on:
 
 permissions:
   contents: read
-  issues: write # comment, label and close issues
-
-# Shares the group with the ticket creation: both change the backlog
-concurrency:
-  group: product-owner
-  cancel-in-progress: false
+  issues: write
+  actions: read
 
 jobs:
   cleanup:
-    runs-on: ubuntu-latest
-    env:
-      # secrets cannot be used in "if:" directly, so the check goes through an env variable
-      APP_CONFIGURED: ${{ secrets.PRODUCT_OWNER_CLIENT_ID != '' && secrets.PRODUCT_OWNER_APP_KEY != '' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: scripts/package-lock.json
-
-      - name: Install Dependencies
-        run: npm ci --ignore-scripts --prefix scripts
-
-      # Same GitHub App as the Product Owner: the comments are written by the app, not by github-actions.
-      # Without the app, the workflow token is enough (it can write issues).
-      - name: Create GitHub App token
-        id: app
-        if: env.APP_CONFIGURED == 'true'
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ secrets.PRODUCT_OWNER_CLIENT_ID }}
-          private-key: ${{ secrets.PRODUCT_OWNER_APP_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
-      - name: Run Product Owner cleanup
-        uses: actions/github-script@v9
-        env:
-          # AI provider: gemini (default) or any OpenAI-compatible service, see scripts/README.md
-          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
-          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
-          LLM_MODEL: ${{ vars.LLM_MODEL }}
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          # the Gemini names keep working while the LLM_ ones are not set
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
-          GEMINI_PROJECT_ID: ${{ vars.GEMINI_PROJECT_ID }}
-          GEMINI_LOCATION: ${{ vars.GEMINI_LOCATION }}
-          # passed via env, never interpolated into the script
-          DRY_RUN: ${{ inputs.dry_run }}
-          STALE_DAYS: ${{ inputs.stale_days }}
-          MAX_ISSUES: ${{ inputs.max_issues }}
-        with:
-          github-token: ${{ steps.app.outputs.token || github.token }}
-          script: |
-            const path = require('path');
-            const { pathToFileURL } = require('url');
-            const file = path.join(process.env.GITHUB_WORKSPACE, 'scripts/productowner-cleanup.mjs');
-            const { productOwnerCleanup } = await import(pathToFileURL(file).href);
-            await productOwnerCleanup({
-              github,
-              context,
-              core,
-              dryRun: process.env.DRY_RUN !== 'false',
-              staleDays: process.env.STALE_DAYS,
-              maxIssues: process.env.MAX_ISSUES,
-            });
+    uses: learosema-adesso/review-and-product-owner-bots/.github/workflows/product-owner-cleanup.yml@v1
+    with:
+      dry_run: ${{ inputs.dry_run }}
+      stale_days: ${{ inputs.stale_days }}
+      max_issues: ${{ inputs.max_issues }}
+    secrets: inherit
